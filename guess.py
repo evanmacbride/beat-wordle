@@ -217,6 +217,21 @@ class Guess:
 			elif point == 2:
 				self.strict_word_list = [w for w in self.strict_word_list if self.current[i] == w[i]]
 
+	def lookahead_similarity(self):
+		all_similar = False
+		diff_ltrs = 0
+		check_word = self.strict_word_list[0]
+		for i in range(len(check_word)):
+			for word in self.strict_word_list:
+				if check_word[i] != word[i]:
+					diff_ltrs += 1
+					break
+			if diff_ltrs >= 2:
+				break
+		if diff_ltrs <= 1:
+			all_similar = True
+		return all_similar
+
 class Game:
 	WORD_LEN = 5
 	TURNS = 6
@@ -260,7 +275,7 @@ class Game:
 		return score
 
 # Run simulation to calculate win rate
-max_simuls = 20
+max_simuls = 1000
 games_won = 0
 breaker_wins = []
 breaker_losses = []
@@ -268,9 +283,9 @@ loss_solns = []
 for i in range(max_simuls):
 	game = Game("data/enable1.txt")
 	game_words = game.get_word_list()
-	#true_soln = game.get_solution()
-	true_soln = 'gills'
-	game.solution = true_soln
+	true_soln = game.get_solution()
+	#true_soln = 'goxes'
+	#game.solution = true_soln
 	guess = Guess(game_words)
 	print(true_soln.upper())
 	# game loop
@@ -278,6 +293,7 @@ for i in range(max_simuls):
 	breaker_last_turn = False
 	breaker_info = None
 	strict = False
+	all_similar = False
 	while not game.won and game.current_turn < Game.TURNS:
 		turns_remaining = Game.TURNS - game.current_turn - 1
 		# Check how much of the solution we have
@@ -285,6 +301,8 @@ for i in range(max_simuls):
 		for l in guess.soln_ltr_matches:
 			if l is not None and l == 2:
 				matched_ltrs += 1
+		if game.current_turn >= 2:
+			all_similar =  guess.lookahead_similarity()
 		if game.current_turn == 0:
 			cur_guess = guess.add_manual_guess('slate')
 			breaker_last_turn = False
@@ -303,7 +321,7 @@ for i in range(max_simuls):
 			strict = True
 			cur_guess = guess.get_auto_guess(strict)
 			breaker_last_turn = False
-		elif (len(guess.soln_ltrs) >= Game.WORD_LEN-1 or matched_ltrs >= Game.WORD_LEN-1) and not breaker_last_turn:
+		elif len(guess.soln_ltrs) >= Game.WORD_LEN-1 or matched_ltrs >= Game.WORD_LEN-1 or all_similar:
 			print("***BREAKER MODE*** only similar words remain")
 			strict = True
 			# Only log the word_list length for the first time find_breaker() is called.
