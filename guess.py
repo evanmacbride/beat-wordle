@@ -104,10 +104,23 @@ class Guess:
 
 	def find_breaker(self, hard=False):
 		ltrs = []
+		'''
+		# ORIGINAL only tracks single letters and ignores multiples of the same
+		# letter within a word.
 		for word in self.strict_word_list:
 			seen_this_word = set(list(word))
 			for ltr in seen_this_word:
 				ltrs.append(ltr)
+		'''
+		# Count "tokens" instead of letters. Tokens capture when there are multiple
+		# occurrences of a letter within a word.
+		for word in self.strict_word_list:
+			for i,ltr in enumerate(word):
+				if list(word).count(ltr) > 1:
+					ltrs.append(ltr + ltr)
+				else:
+					#ltrs.append(ltr + str(i))
+					ltrs.append(ltr)
 		ltrcts = dict(Counter(ltrs))
 		# Give a higher score to letters that are closer to being in half the words
 		# in strict_word_list.
@@ -146,7 +159,21 @@ class Guess:
 						seen_this_word.add(l)
 			breaker_word_pts.append((word,word_pts))
 		breaker_word_pts = sorted(breaker_word_pts, key=lambda x: x[1], reverse=True)
-		breaker = breaker_word_pts[0][0]
+		redundant = True
+		i = 0
+		while redundant:
+			breaker = breaker_word_pts[i][0]
+			print("Considering:",breaker.upper())
+			i += 1
+			if breaker in self.guess_history:
+				continue
+			all_new_info = True
+			for j,l in enumerate(breaker):
+				if l == self.soln_ltr_matches[j]:
+					all_new_info = False
+					break
+			if all_new_info:
+				break
 		self.current = breaker
 		self.guess_history.append(self.current)
 		return self.current
@@ -233,7 +260,7 @@ class Game:
 		return score
 
 # Run simulation to calculate win rate
-max_simuls = 10
+max_simuls = 20
 games_won = 0
 breaker_wins = []
 breaker_losses = []
@@ -241,13 +268,14 @@ loss_solns = []
 for i in range(max_simuls):
 	game = Game("data/enable1.txt")
 	game_words = game.get_word_list()
-	true_soln = game.get_solution()
-	#true_soln = 'hirer'
-	#game.solution = true_soln
+	#true_soln = game.get_solution()
+	true_soln = 'gills'
+	game.solution = true_soln
 	guess = Guess(game_words)
 	print(true_soln.upper())
 	# game loop
 	used_breaker = False
+	breaker_last_turn = False
 	breaker_info = None
 	strict = False
 	while not game.won and game.current_turn < Game.TURNS:
@@ -259,19 +287,23 @@ for i in range(max_simuls):
 				matched_ltrs += 1
 		if game.current_turn == 0:
 			cur_guess = guess.add_manual_guess('slate')
+			breaker_last_turn = False
 		elif guess.seen_complete_soln():
 			print("***STRICT MODE*** solution seen")
 			strict = True
 			cur_guess = guess.get_auto_guess(strict)
+			breaker_last_turn = False
 		elif len(guess.strict_word_list) <= turns_remaining + 1:
 			print("***STRICT MODE*** few choices remain")
 			strict = True
 			cur_guess = guess.get_auto_guess(strict)
+			breaker_last_turn = False
 		elif game.current_turn == Game.TURNS - 1:
 			print("***STRICT MODE*** final turn")
 			strict = True
 			cur_guess = guess.get_auto_guess(strict)
-		elif len(guess.soln_ltrs) >= Game.WORD_LEN-1 or matched_ltrs >= Game.WORD_LEN-1:
+			breaker_last_turn = False
+		elif (len(guess.soln_ltrs) >= Game.WORD_LEN-1 or matched_ltrs >= Game.WORD_LEN-1) and not breaker_last_turn:
 			print("***BREAKER MODE*** only similar words remain")
 			strict = True
 			# Only log the word_list length for the first time find_breaker() is called.
@@ -279,26 +311,22 @@ for i in range(max_simuls):
 				breaker_info = len(guess.strict_word_list)
 			cur_guess = guess.find_breaker(hard=True)
 			used_breaker = True
-		elif game.current_turn >= Game.TURNS - 4 and len(guess.strict_word_list) > 4:
+			breaker_last_turn = True
+		elif game.current_turn >= Game.TURNS - 4 and len(guess.strict_word_list) > 4 and not breaker_last_turn:
 			print("***BREAKER MODE*** too many words remain")
 			strict = True
 			if not used_breaker:
 				breaker_info = len(guess.strict_word_list)
 			cur_guess = guess.find_breaker(hard=True)
 			used_breaker = True
-		#elif game.current_turn == Game.TURNS - 2 and len(guess.strict_word_list) >= 2:
-		#	print("***BREAKER MODE*** too many words remain")
-		#	strict = True
-		#	if not used_breaker:
-		#		breaker_info = len(guess.strict_word_list)
-		#	cur_guess = guess.find_breaker(hard=True)
-		#	used_breaker = True
+			breaker_last_turn = True
 		else:
 			if strict:
 				print("***STRICT MODE***")
 			cur_guess = guess.get_auto_guess(strict)
+			breaker_last_turn = False
 		score = game.score_guess(cur_guess)
-		print(turns_remaining, cur_guess.upper(), score, guess.strict_word_list[0:6],
+		print(turns_remaining, cur_guess.upper(), score, guess.strict_word_list[0:10],
 					"...", len(guess.strict_word_list))
 		if cur_guess == true_soln:
 			print("YOU WIN")
