@@ -102,61 +102,6 @@ class Guess:
 		word_entrs = sorted(word_entrs, key=lambda x: x[1], reverse=True)		
 		return word_entrs
 
-	def get_helper_anagram(self):
-		wordgrid_df = pd.DataFrame([list(w) for w in self.strict_word_list])	
-		gridct_df = pd.DataFrame()
-		for c in wordgrid_df:
-			posnct = pd.DataFrame(dict(Counter(wordgrid_df.loc[:,c])),index=[c])
-			gridct_df = pd.concat([gridct_df, posnct])
-		gridct_df = gridct_df.fillna(0)
-		ltrcts = []
-		for ltr,posn in gridct_df.items():
-			for p in posn:
-				if p < len(self.strict_word_list) and p > 0:
-					ltrcts.append((ltr,p))
-		ltrcts = sorted(ltrcts, key=lambda x: x[1], reverse=True)
-		# Trim duplicate letters
-		keep_ltrs = []
-		for l,c in ltrcts:
-			if l not in keep_ltrs:
-				keep_ltrs.append(l)
-		ana_ltrs = []
-		# Attempt to make anagrams
-		found_anagram = False
-		has_vowel = False
-		i = 0
-		# If there aren't enough candidate letters to spell a valid anagram
-		initgrid_df = pd.DataFrame([l for word in [list(w) for w in self.initial_word_list] for l in word])
-		initcomltrs = [i[0] for i in initgrid_df.value_counts().index]
-		anagram = None
-		ana_ltrs = keep_ltrs[0:Game.WORD_LEN-1]
-		while len(ana_ltrs) < Game.WORD_LEN:
-			ana_ltrs.append(initcomltrs[i])
-			i += 1
-		i = 0
-		while not anagram:
-			# Check for any vowels
-			for v in guess.VOWELS:
-				if v in ana_ltrs[0:Game.WORD_LEN-1]:
-					has_vowel = True
-					break
-			if not has_vowel:
-				for v in guess.VOWELS:
-					ana_ltrs[Game.WORD_LEN-1] = v
-					has_vowel = True
-					# Check if valid anagram
-					for cand in [''.join(p) for p in itertools.permutations(''.join(ana_ltrs))]:
-						print("Checking ",cand)
-						if cand in self.initial_word_list:
-							print(cand," is a real word")
-							anagram = cand
-							break
-					if anagram:
-						break
-			break
-		self.current = anagram
-		return anagram
-
 	def find_breaker(self, hard=False):
 		ltrs = []
 		for word in self.strict_word_list:
@@ -288,7 +233,7 @@ class Game:
 		return score
 
 # Run simulation to calculate win rate
-max_simuls = 1000
+max_simuls = 10
 games_won = 0
 breaker_wins = []
 breaker_losses = []
