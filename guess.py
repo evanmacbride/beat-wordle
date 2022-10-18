@@ -8,7 +8,7 @@ import itertools
 import numpy as np
 
 class Guess:
-	STARTERS = ['stoae', 'spear', 'slate', 'cares']
+	STARTERS = ['stoae', 'spear', 'slate', 'cares', 'crane']
 	VOWELS = ['e', 'a', 'o', 'i', 'u', 'y']
 
 	def __init__(self, word_list, word=None):
@@ -91,10 +91,11 @@ class Guess:
 				# strict_word_list. If we try to fetch from ltrent_df a letter that
 				# doesn't exist there, we'll throw a KeyError.
 				try:
-					if l in seen_this_word:
-						sum += ltrent_df.loc[i,l] / 2
-					else:
-						sum += ltrent_df.loc[i,l]
+					sum += ltrent_df.loc[i,l]
+					#if l in seen_this_word:
+					#	sum += ltrent_df.loc[i,l] / 2
+					#else:
+					#	sum += ltrent_df.loc[i,l]
 				except KeyError:
 					sum += 0.0
 				seen_this_word.add(l)
@@ -284,7 +285,7 @@ for i in range(max_simuls):
 	game = Game("data/enable1.txt")
 	game_words = game.get_word_list()
 	true_soln = game.get_solution()
-	#true_soln = 'goxes'
+	#true_soln = 'kinks'
 	#game.solution = true_soln
 	guess = Guess(game_words)
 	print(true_soln.upper())
@@ -304,7 +305,7 @@ for i in range(max_simuls):
 		if game.current_turn >= 2:
 			all_similar =  guess.lookahead_similarity()
 		if game.current_turn == 0:
-			cur_guess = guess.add_manual_guess('slate')
+			cur_guess = guess.add_manual_guess('crane')
 			breaker_last_turn = False
 		elif guess.seen_complete_soln():
 			print("***STRICT MODE*** solution seen")
