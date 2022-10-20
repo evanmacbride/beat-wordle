@@ -55,7 +55,6 @@ class Guess:
 			using_word_list = self.strict_word_list
 		else:
 			using_word_list = self.word_list
-		#wordgrid_df = pd.DataFrame([list(w) for w in using_word_list])
 		wordgrid_df = pd.DataFrame([list(w) for w in self.strict_word_list])
 		gridct_df = pd.DataFrame()
 		for c in wordgrid_df:
@@ -77,9 +76,6 @@ class Guess:
 		# Get the total entropy for each word in word_list
 		word_entrs = []
 		strict_ltrs = []
-		if strict:
-			# Create set of letters found in the strict_word_list
-			pass
 		for w in using_word_list:
 			sum = 0.0
 			seen_this_word = set()
@@ -88,14 +84,11 @@ class Guess:
 					continue
 				# If l is not in strict_ltrs, sum += 0.0. We want to make sure we're
 				# using our guesses to obtain new information about the words in
-				# strict_word_list. If we try to fetch from ltrent_df a letter that
-				# doesn't exist there, we'll throw a KeyError.
+				# strict_word_list.
 				try:
 					sum += ltrent_df.loc[i,l]
-					#if l in seen_this_word:
-					#	sum += ltrent_df.loc[i,l] / 2
-					#else:
-					#	sum += ltrent_df.loc[i,l]
+				# If we try to fetch from ltrent_df a letter that doesn't exist
+				# in ltrent_df, we'll throw a KeyError.
 				except KeyError:
 					sum += 0.0
 				seen_this_word.add(l)
@@ -105,14 +98,6 @@ class Guess:
 
 	def find_breaker(self, hard=False):
 		ltrs = []
-		'''
-		# ORIGINAL only tracks single letters and ignores multiples of the same
-		# letter within a word.
-		for word in self.strict_word_list:
-			seen_this_word = set(list(word))
-			for ltr in seen_this_word:
-				ltrs.append(ltr)
-		'''
 		# Count "tokens" instead of letters. Tokens capture when there are multiple
 		# occurrences of a letter within a word.
 		for word in self.strict_word_list:
@@ -120,7 +105,6 @@ class Guess:
 				if list(word).count(ltr) > 1:
 					ltrs.append(ltr + ltr)
 				else:
-					#ltrs.append(ltr + str(i))
 					ltrs.append(ltr)
 		ltrcts = dict(Counter(ltrs))
 		# Give a higher score to letters that are closer to being in half the words
@@ -289,12 +273,12 @@ for i in range(max_simuls):
 	#game.solution = true_soln
 	guess = Guess(game_words)
 	print(true_soln.upper())
-	# game loop
 	used_breaker = False
 	breaker_last_turn = False
 	breaker_info = None
 	strict = False
 	all_similar = False
+	# Game loop
 	while not game.won and game.current_turn < Game.TURNS:
 		turns_remaining = Game.TURNS - game.current_turn - 1
 		# Check how much of the solution we have
@@ -368,7 +352,3 @@ print(games_won, "/", max_simuls, "... WIN RATE:", games_won / max_simuls)
 print("LOST ON:")
 for s in loss_solns:
 	print(s)
-#print()
-#print("BREAKER WINS", np.min(breaker_wins), np.max(breaker_wins), np.mean(breaker_wins), np.median(breaker_wins))
-#print()
-#print("BREAKER LOSSES", np.min(breaker_losses), np.max(breaker_losses), np.mean(breaker_losses), np.median(breaker_losses))
