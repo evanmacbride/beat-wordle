@@ -11,11 +11,15 @@ class Guess:
 	STARTERS = ['stoae', 'spear', 'slate', 'cares', 'crane']
 	VOWELS = ['e', 'a', 'o', 'i', 'u', 'y']
 
-	def __init__(self, word_list, word=None):
+	def __init__(self, word_list, aux_word_list=None):
 		self.initial_word_list = word_list
 		self.word_list = word_list
 		self.strict_word_list = self.word_list
-		self.current = word
+		if aux_word_list:
+			self.aux_word_list = aux_word_list
+		else:
+			self.aux_word_list = self.initial_word_list
+		self.current = None
 		if self.current:
 			self.guess_history = [self.current]
 		else:
@@ -50,6 +54,7 @@ class Guess:
 		return self.get_word_entr_list()[0][1]
 
 	def get_word_entr_list(self, strict=False):
+		#strict = True
 		# Get the probability of each letter at each position
 		if strict:
 			using_word_list = self.strict_word_list
@@ -57,22 +62,41 @@ class Guess:
 			using_word_list = self.word_list
 		wordgrid_df = pd.DataFrame([list(w) for w in self.strict_word_list])
 		gridct_df = pd.DataFrame()
+		# For each letter position, count the occurrences of letters at that 
+		# position. Store this information in gridct_df.
 		for c in wordgrid_df:
 			posnct = pd.DataFrame(dict(Counter(wordgrid_df.loc[:,c])),index=[c])
+			if strict and self.soln_ltr_matches[c]:
+				continue
 			gridct_df = pd.concat([gridct_df, posnct])
 		gridct_df = gridct_df.fillna(0)
+		if strict:
+			sumgrid_df = gridct_df.sum(numeric_only=True, axis=0)
+		else:
+			sumgrid_df = None
 		# Get the entropy for each letter at each position
 		ltrent_df = pd.DataFrame()
-		for posn in wordgrid_df:
-			posn_entr = {}
-			for col in gridct_df:
-				prob = gridct_df.loc[posn,col] / len(wordgrid_df)
+		if not strict:
+			for posn in wordgrid_df:
+				posn_entr = {}
+				for col in gridct_df:
+					prob = gridct_df.loc[posn,col] / len(wordgrid_df)
+					try:
+						entr = -prob * math.log(prob, 2)
+					except ValueError:
+						entr = 0.0
+					posn_entr[col] = entr
+			ltrent_df = pd.concat([ltrent_df,pd.DataFrame(posn_entr,index=[posn])],axis=0)
+		else:
+			ltr_entr = {}
+			for idx,ltrct in zip(sumgrid_df.index, sumgrid_df):
+				prob = ltrct / (len(using_word_list) * len(using_word_list[0]))
 				try:
 					entr = -prob * math.log(prob, 2)
 				except ValueError:
 					entr = 0.0
-				posn_entr[col] = entr
-			ltrent_df = pd.concat([ltrent_df,pd.DataFrame(posn_entr,index=[posn])],axis=0)
+				ltr_entr[idx] = entr
+			ltrent_df = pd.Series(ltr_entr).to_frame()
 		# Get the total entropy for each word in word_list
 		word_entrs = []
 		strict_ltrs = []
@@ -85,12 +109,15 @@ class Guess:
 				# If l is not in strict_ltrs, sum += 0.0. We want to make sure we're
 				# using our guesses to obtain new information about the words in
 				# strict_word_list.
-				try:
-					sum += ltrent_df.loc[i,l]
-				# If we try to fetch from ltrent_df a letter that doesn't exist
-				# in ltrent_df, we'll throw a KeyError.
-				except KeyError:
-					sum += 0.0
+				if not strict:
+					try:
+						sum += ltrent_df.loc[i,l]
+					# If we try to fetch from ltrent_df a letter that doesn't exist
+					# in ltrent_df, we'll throw a KeyError.
+					except KeyError:
+						sum += 0.0
+				else:
+					sum += ltrent_df.loc[l].item()
 				seen_this_word.add(l)
 			word_entrs.append((w,sum))
 		word_entrs = sorted(word_entrs, key=lambda x: x[1], reverse=True)		
@@ -129,7 +156,7 @@ class Guess:
 		# Assign scores to words in the initial_word_list
 		breaker_word_pts = []
 		if hard:
-			using_word_list = self.initial_word_list
+			using_word_list = self.aux_word_list
 		else:
 			using_word_list = self.word_list
 		for word in using_word_list:
@@ -220,14 +247,15 @@ class Game:
 	WORD_LEN = 5
 	TURNS = 6
 
-	def __init__(self, fpath, sample=None):
+	def __init__(self, fpath, aux_fpath=None, sample=None):
+		#random.seed(3)
 		f = open(fpath,"r")
 		all_words = f.readlines() 
 		all_words = [w.strip() for w in all_words]
 		trim_words = [w for w in all_words if not re.search(r'[^a-z]',w)]
 		word_len_words = [w for w in trim_words if len(w) == self.WORD_LEN]
 		if sample:
-			self.word_list = random.sample(word_len_words, 4500)
+			self.word_list = random.sample(word_len_words, sample)
 		else:
 			self.word_list = word_len_words
 		random.shuffle(self.word_list)
@@ -235,6 +263,18 @@ class Game:
 		self.score_history = []
 		self.won = False
 		self.current_turn = 0
+		f.close()
+		if aux_fpath:
+			f = open(aux_fpath,"r")
+			all_aux_words = f.readlines() 
+			all_aux_words = [w.strip() for w in all_aux_words]
+			trim_aux_words = [w for w in all_aux_words if not re.search(r'[^a-z]',w)]
+			word_len_aux_words = [w for w in trim_aux_words if len(w) == self.WORD_LEN]
+			self.aux_word_list = word_len_aux_words
+			random.shuffle(self.aux_word_list)
+			f.close()
+		else:
+			self.aux_word_list = None
 
 	def get_word_list(self,sample=None):
 		if sample:
@@ -242,6 +282,9 @@ class Game:
 		else:
 			words = self.word_list
 		return words
+
+	def get_aux_word_list(self, sample=None):
+		return self.aux_word_list
 
 	def get_solution(self):
 		return self.solution 
@@ -258,20 +301,21 @@ class Game:
 		self.score_history.append(score)
 		return score
 
-def simul(num_simuls=10, verbose=True, manual_soln=None):
+def simul(num_simuls=1000, verbose=True, manual_soln=None):
 	# Run simulation to calculate win rate
 	games_won = 0
 	loss_solns = []
 	for i in range(num_simuls):
 		# Initialize game and guess engine
-		game = Game("data/enable1.txt")
+		game = Game("data/popular.txt", aux_fpath="data/enable1.txt")
 		game_words = game.get_word_list()
+		aux_words = game.get_aux_word_list()
 		if not manual_soln:
 			true_soln = game.get_solution()
 		else:
 			true_soln = manual_soln
 			game.solution = true_soln
-		guess = Guess(game_words)
+		guess = Guess(game_words, aux_words)
 		# Gameplay booleans
 		used_breaker = False
 		breaker_last_turn = False
@@ -288,7 +332,7 @@ def simul(num_simuls=10, verbose=True, manual_soln=None):
 			if game.current_turn >= 2:
 				all_similar =  guess.lookahead_similarity()
 			if game.current_turn == 0:
-				cur_guess = guess.add_manual_guess('crane')
+				cur_guess = guess.add_manual_guess('slate')
 				breaker_last_turn = False
 			elif guess.seen_complete_soln():
 				if verbose:
@@ -314,7 +358,9 @@ def simul(num_simuls=10, verbose=True, manual_soln=None):
 				strict = True
 				cur_guess = guess.find_breaker(hard=True)
 				breaker_last_turn = True
-			elif game.current_turn >= Game.TURNS - 4 and len(guess.strict_word_list) > 4 and not breaker_last_turn:
+			#elif game.current_turn >= Game.TURNS - 4 and len(guess.strict_word_list) > 4 and not breaker_last_turn:
+			elif game.current_turn >= Game.TURNS - 4 and len(guess.strict_word_list) > (Game.TURNS - game.current_turn + 1) and ( 
+					not breaker_last_turn):
 				if verbose:
 					print("***BREAKER MODE*** too many words remain")
 				strict = True
