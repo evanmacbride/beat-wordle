@@ -55,7 +55,7 @@ class Guess:
 
 	def get_word_entr_list(self, strict=False):
 		#strict = True
-		# Get the probability of each letter at each position
+		# Get the probability of each letter at each position or within entire word
 		if strict:
 			using_word_list = self.strict_word_list
 		else:
@@ -111,7 +111,10 @@ class Guess:
 				# strict_word_list.
 				if not strict:
 					try:
-						sum += ltrent_df.loc[i,l]
+						addend = ltrent_df.loc[i,l]
+						if l in seen_this_word:
+							addend /= 2.0
+						sum += addend
 					# If we try to fetch from ltrent_df a letter that doesn't exist
 					# in ltrent_df, we'll throw a KeyError.
 					except KeyError:
@@ -301,7 +304,7 @@ class Game:
 		self.score_history.append(score)
 		return score
 
-def simul(num_simuls=1000, verbose=True, manual_soln=None):
+def simul(num_simuls=20, verbose=True, manual_soln='jimmy'):
 	# Run simulation to calculate win rate
 	games_won = 0
 	loss_solns = []
