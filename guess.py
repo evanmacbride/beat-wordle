@@ -54,7 +54,6 @@ class Guess:
 		return self.get_word_entr_list()[0][1]
 
 	def get_word_entr_list(self, strict=False):
-		#strict = True
 		# Get the probability of each letter at each position or within entire word
 		if strict:
 			using_word_list = self.strict_word_list
@@ -251,7 +250,6 @@ class Game:
 	TURNS = 6
 
 	def __init__(self, fpath, aux_fpath=None, sample=None):
-		#random.seed(3)
 		f = open(fpath,"r")
 		all_words = f.readlines() 
 		all_words = [w.strip() for w in all_words]
@@ -304,7 +302,7 @@ class Game:
 		self.score_history.append(score)
 		return score
 
-def simul(num_simuls=20, verbose=True, manual_soln='jimmy'):
+def simul(num_simuls=100, verbose=True, manual_soln=None):
 	# Run simulation to calculate win rate
 	games_won = 0
 	loss_solns = []
