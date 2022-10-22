@@ -302,7 +302,7 @@ class Game:
 		self.score_history.append(score)
 		return score
 
-def simul(num_simuls=100, verbose=True, manual_soln=None):
+def simululation(num_simuls=1000, verbose=True, manual_soln=None):
 	# Run simulation to calculate win rate
 	games_won = 0
 	loss_solns = []
@@ -367,6 +367,11 @@ def simul(num_simuls=100, verbose=True, manual_soln=None):
 				strict = True
 				cur_guess = guess.find_breaker(hard=True)
 				breaker_last_turn = True
+			elif game.current_turn >= 2:
+				if verbose:
+					print("***STRICT MODE*** opening moves have ended")
+				strict = True
+				cur_guess = guess.get_auto_guess(strict)
 			else:
 				if strict and verbose:
 					print("***STRICT MODE***")
@@ -402,4 +407,4 @@ def simul(num_simuls=100, verbose=True, manual_soln=None):
 	return
 
 if __name__ == '__main__':
-	sys.exit(simul())
+	sys.exit(simulation())
