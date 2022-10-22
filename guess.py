@@ -54,6 +54,8 @@ class Guess:
 		return self.get_word_entr_list()[0][1]
 
 	def get_word_entr_list(self, strict=False):
+		# DEBUG
+		strict = True
 		# Get the probability of each letter at each position or within entire word
 		if strict:
 			using_word_list = self.strict_word_list
@@ -76,6 +78,7 @@ class Guess:
 		# Get the entropy for each letter at each position
 		ltrent_df = pd.DataFrame()
 		if not strict:
+			# Use positional information
 			for posn in wordgrid_df:
 				posn_entr = {}
 				for col in gridct_df:
@@ -85,8 +88,10 @@ class Guess:
 					except ValueError:
 						entr = 0.0
 					posn_entr[col] = entr
-			ltrent_df = pd.concat([ltrent_df,pd.DataFrame(posn_entr,index=[posn])],axis=0)
+				ltrent_df = pd.concat([ltrent_df,pd.DataFrame(posn_entr,index=[posn])],axis=0)
 		else:
+			# Do not use positional information. Consider each letter's probability
+			# at any position within a word.
 			ltr_entr = {}
 			for idx,ltrct in zip(sumgrid_df.index, sumgrid_df):
 				prob = ltrct / (len(using_word_list) * len(using_word_list[0]))
