@@ -253,6 +253,7 @@ class Guess:
 class Game:
 	WORD_LEN = 5
 	TURNS = 6
+	NUM_DISP = 10
 
 	def __init__(self, fpath, aux_fpath=None, sample=None):
 		f = open(fpath,"r")
@@ -341,6 +342,13 @@ class Game:
 		clr_scored_guess = clr_scored_guess
 		return clr_scored_guess
 
+	def get_display_header(self):
+		header_str = '''
+T  GUESS  SCORE           REMAINING                                                               SIZE
+_  _____  ______________  _________                                                               ____
+		'''
+		return header_str
+
 def simulation(num_simuls=1, verbose=True, manual_soln=None, starter='slate'):
 	# Run simulation to calculate win rate
 	games_won = 0
@@ -348,6 +356,8 @@ def simulation(num_simuls=1, verbose=True, manual_soln=None, starter='slate'):
 	turns_played = 0
 	# Initialize game
 	game = Game("data/popular.txt", aux_fpath="data/enable1.txt")
+	if verbose:
+		header_str = game.get_display_header()
 	for i in range(num_simuls):
 		# Initialize guess engine
 		game_words = game.get_word_list()
@@ -363,6 +373,8 @@ def simulation(num_simuls=1, verbose=True, manual_soln=None, starter='slate'):
 		breaker_last_turn = False
 		strict = False
 		all_similar = False
+		if verbose:
+			print(header_str)
 		# Game loop
 		while not game.won and game.current_turn < Game.TURNS:
 			turns_remaining = Game.TURNS - game.current_turn - 1
@@ -421,8 +433,14 @@ def simulation(num_simuls=1, verbose=True, manual_soln=None, starter='slate'):
 			score = game.score_guess(cur_guess)
 			clr_scored_guess = game.get_clr_scored_guess(score, cur_guess)
 			if verbose:
-				print("{}:".format(turns_remaining), clr_scored_guess, score, guess.strict_word_list[0:10], 
-							"...", len(guess.strict_word_list))
+				display_word_str = ", ".join(guess.strict_word_list[0:game.NUM_DISP])
+				if len(guess.strict_word_list) > game.NUM_DISP:
+					display_word_str += "... " + '{0:>4}'.format(str(len(guess.strict_word_list)))
+				else:
+					display_word_str = '{0:<75}'.format(display_word_str) + str(
+						len(guess.strict_word_list))
+				display_word_str = " " + display_word_str
+				print("{}:".format(turns_remaining), clr_scored_guess, score, display_word_str)
 			else:
 				print("{}:".format(turns_remaining), clr_scored_guess, score)
 			if cur_guess == true_soln:
