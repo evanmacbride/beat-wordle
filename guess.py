@@ -331,7 +331,7 @@ class Game:
 		clr_scored_guess = clr_scored_guess
 		return clr_scored_guess
 
-def simulation(num_simuls=1, verbose=True, manual_soln=None):
+def simulation(num_simuls=1, verbose=True, manual_soln=None, starter='slate'):
 	# Run simulation to calculate win rate
 	games_won = 0
 	loss_solns = []
@@ -361,8 +361,8 @@ def simulation(num_simuls=1, verbose=True, manual_soln=None):
 					matched_ltrs += 1
 			if game.current_turn >= 2:
 				all_similar =  guess.lookahead_similarity()
-			if game.current_turn == 0:
-				cur_guess = guess.add_manual_guess('slate')
+			if game.current_turn == 0 and starter:
+				cur_guess = guess.add_manual_guess(starter)
 				breaker_last_turn = False
 			elif guess.seen_complete_soln():
 				if verbose:
@@ -441,6 +441,7 @@ if __name__ == '__main__':
 	verbose = True
 	num_simuls = 1
 	manual_soln = None
+	starter = 'slate'
 	# Parse command line input
 	opts = [opt for opt in sys.argv if "--" in opt]
 	args = [arg for arg in sys.argv if "-" in arg and "--" not in arg]
@@ -453,6 +454,12 @@ if __name__ == '__main__':
 	for arg in args:
 		if "-n=" in arg:
 			num_simuls = int(arg.split("=")[1])
-		elif "-m=" in arg:
+		if "-m=" in arg:
 			manual_soln = arg.split("=")[1].lower()
-	sys.exit(simulation(verbose=verbose, num_simuls=num_simuls, manual_soln=manual_soln))
+		if "-s=" in arg:
+			value = arg.split("=")[1]
+			if value == "None":
+				starter = None
+			else:
+				starter = arg.split("=")[1].lower()
+	sys.exit(simulation(verbose=verbose, num_simuls=num_simuls, manual_soln=manual_soln, starter=starter))
