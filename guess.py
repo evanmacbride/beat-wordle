@@ -345,6 +345,7 @@ def simulation(num_simuls=1, verbose=True, manual_soln=None, starter='slate'):
 	# Run simulation to calculate win rate
 	games_won = 0
 	loss_solns = []
+	turns_played = 0
 	# Initialize game
 	game = Game("data/popular.txt", aux_fpath="data/enable1.txt")
 	for i in range(num_simuls):
@@ -440,9 +441,11 @@ def simulation(num_simuls=1, verbose=True, manual_soln=None, starter='slate'):
 				print(word)
 			loss_solns.append(true_soln)
 		# Reset game to get new solution etc. for next turn
+		turns_played += game.current_turn + 1
 		game.reset()
 		print()
-	print(games_won, "/", num_simuls, "... WIN RATE:", games_won / num_simuls)
+	print(games_won, "/", num_simuls, "... WIN RATE:", games_won / num_simuls, 
+				"  AVG TURNS PLAYED:", turns_played / num_simuls)
 	if num_simuls != games_won:
 		print("LOST ON:")
 		for s in loss_solns:
