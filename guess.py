@@ -407,4 +407,22 @@ def simulation(num_simuls=1, verbose=True, manual_soln=None):
 	return
 
 if __name__ == '__main__':
-	sys.exit(simulation())
+	# Arguments and options for simulation()
+	verbose = True
+	num_simuls = 1
+	manual_soln = None
+	# Parse command line input
+	opts = [opt for opt in sys.argv if "--" in opt]
+	args = [arg for arg in sys.argv if "-" in arg and "--" not in arg]
+	# Parse options
+	if "--quiet" in opts:
+		verbose = False
+	elif "--verbose" in opts:
+		verbose = True
+	# Parse arguments
+	for arg in args:
+		if "-n=" in arg:
+			num_simuls = int(arg.split("=")[1])
+		elif "-m=" in arg:
+			manual_soln = arg.split("=")[1].lower()
+	sys.exit(simulation(verbose=verbose, num_simuls=num_simuls, manual_soln=manual_soln))
