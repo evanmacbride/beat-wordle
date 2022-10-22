@@ -264,11 +264,7 @@ class Game:
 			self.word_list = random.sample(word_len_words, sample)
 		else:
 			self.word_list = word_len_words
-		random.shuffle(self.word_list)
-		self.solution = random.choice(self.word_list)
-		self.score_history = []
-		self.won = False
-		self.current_turn = 0
+		self.reset()
 		f.close()
 		if aux_fpath:
 			f = open(aux_fpath,"r")
@@ -281,6 +277,15 @@ class Game:
 			f.close()
 		else:
 			self.aux_word_list = None
+		return
+
+	def reset(self):
+		random.shuffle(self.word_list)
+		self.solution = random.choice(self.word_list)
+		self.score_history = []
+		self.won = False
+		self.current_turn = 0
+		return
 
 	def get_word_list(self,sample=None):
 		if sample:
@@ -340,9 +345,10 @@ def simulation(num_simuls=1, verbose=True, manual_soln=None, starter='slate'):
 	# Run simulation to calculate win rate
 	games_won = 0
 	loss_solns = []
+	# Initialize game
+	game = Game("data/popular.txt", aux_fpath="data/enable1.txt")
 	for i in range(num_simuls):
-		# Initialize game and guess engine
-		game = Game("data/popular.txt", aux_fpath="data/enable1.txt")
+		# Initialize guess engine
 		game_words = game.get_word_list()
 		aux_words = game.get_aux_word_list()
 		if not manual_soln:
@@ -433,6 +439,8 @@ def simulation(num_simuls=1, verbose=True, manual_soln=None, starter='slate'):
 			for word in guess.strict_word_list:
 				print(word)
 			loss_solns.append(true_soln)
+		# Reset game to get new solution etc. for next turn
+		game.reset()
 		print()
 	print(games_won, "/", num_simuls, "... WIN RATE:", games_won / num_simuls)
 	if num_simuls != games_won:
