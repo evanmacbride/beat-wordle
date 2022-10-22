@@ -359,7 +359,6 @@ def simulation(num_simuls=1, verbose=True, manual_soln=None):
 				strict = True
 				cur_guess = guess.find_breaker(hard=True)
 				breaker_last_turn = True
-			#elif game.current_turn >= Game.TURNS - 4 and len(guess.strict_word_list) > 4 and not breaker_last_turn:
 			elif game.current_turn >= Game.TURNS - 4 and len(guess.strict_word_list) > (Game.TURNS - game.current_turn + 1) and ( 
 					not breaker_last_turn):
 				if verbose:
@@ -372,6 +371,7 @@ def simulation(num_simuls=1, verbose=True, manual_soln=None):
 					print("***STRICT MODE*** opening moves have ended")
 				strict = True
 				cur_guess = guess.get_auto_guess(strict)
+				breaker_last_turn = False
 			else:
 				if strict and verbose:
 					print("***STRICT MODE***")
