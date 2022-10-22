@@ -302,7 +302,7 @@ class Game:
 		self.score_history.append(score)
 		return score
 
-def simululation(num_simuls=1000, verbose=True, manual_soln=None):
+def simulation(num_simuls=1, verbose=True, manual_soln=None):
 	# Run simulation to calculate win rate
 	games_won = 0
 	loss_solns = []
