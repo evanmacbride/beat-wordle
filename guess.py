@@ -302,6 +302,35 @@ class Game:
 		self.score_history.append(score)
 		return score
 
+	def get_clr_scored_guess(self, score, guess):
+		'''
+		Return a string formatted to color-code a guess's score when printed in
+		the terminal. A zero-scoring letter (corresponding to that letter not being
+		part of the true solution) should appear darkest. A one score should appear
+		lighter than a zero score, but not very bright. A two score should appear
+		the brightest. Different systems may display colors differently. You should
+		adjust the values of the score_ variables to suit your needs.
+		'''
+		guess = guess.upper()
+		score_0 = 31
+		score_1 = 34
+		score_2 = 36
+		clr = 0
+		clr_scored_guess = ''
+		fmt_str = "\x1b[{}m{}\x1b[0m"
+		for i, s in enumerate(score):
+			if s == 0:
+				clr = score_0
+			elif s == 1:
+				clr = score_1
+			elif s == 2:
+				clr = score_2
+			else:
+				clr = 0
+			clr_scored_guess += fmt_str.format(clr,guess[i])
+		clr_scored_guess = clr_scored_guess
+		return clr_scored_guess
+
 def simulation(num_simuls=1, verbose=True, manual_soln=None):
 	# Run simulation to calculate win rate
 	games_won = 0
@@ -378,11 +407,12 @@ def simulation(num_simuls=1, verbose=True, manual_soln=None):
 				cur_guess = guess.get_auto_guess(strict)
 				breaker_last_turn = False
 			score = game.score_guess(cur_guess)
+			clr_scored_guess = game.get_clr_scored_guess(score, cur_guess)
 			if verbose:
-				print(turns_remaining, cur_guess.upper(), score, guess.strict_word_list[0:10],
-						"...", len(guess.strict_word_list))
+				print("{}:".format(turns_remaining), clr_scored_guess, score, guess.strict_word_list[0:10], 
+							"...", len(guess.strict_word_list))
 			else:
-				print(turns_remaining, cur_guess.upper(), score)
+				print("{}:".format(turns_remaining), clr_scored_guess, score)
 			if cur_guess == true_soln:
 				print("YOU WIN")
 				game.won = True
