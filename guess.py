@@ -4,8 +4,6 @@ import pandas as pd
 from collections import Counter
 import math
 from os import sys
-import itertools
-import numpy as np
 
 class Guess:
 	STARTERS = ['stoae', 'spear', 'slate', 'cares', 'crane']
