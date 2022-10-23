@@ -41,9 +41,38 @@ class Guess:
 		return self.current
 
 	def get_auto_guess(self, strict=False):
-		self.current = self.get_word_entr_list(strict)[0][0]
+		#self.current = self.get_word_entr_list(strict)[0][0]
+		self.current = self.get_most_likely_word()
 		self.guess_history.append(self.current)
 		return self.current
+
+	def get_most_likely_word(self):
+		all_ltrs = list(''.join(self.strict_word_list))
+		ltrfreq = dict(Counter(all_ltrs))
+		ltrentr = {}
+		for ltr in ltrfreq.keys():
+			prob = ltrfreq[ltr] / len(all_ltrs)
+			if prob == 0:
+				entr = 0
+			else:
+				entr = prob * -math.log(prob, 2)
+			ltrentr[ltr] = entr
+		wordentr = []
+		for word in self.strict_word_list:
+			entr_sum = 0.0
+			seen_this_word = {}
+			for ltr in word:
+				div = 1
+				if seen_this_word.get(ltr):
+					div = seen_this_word[ltr]
+					seen_this_word[ltr] = div + 1
+				else:
+					seen_this_word[ltr] = 2
+				entr_sum += ltrentr[ltr] / div
+			wordentr.append((word, entr_sum))
+		wordentr = sorted(wordentr, key=lambda x: x[1], reverse=True)
+		most_likely_word = wordentr[0][0]
+		return most_likely_word
 
 	def get_word_entr_list(self, strict=False):
 		# DEBUG
@@ -257,7 +286,6 @@ class Game:
 			self.word_list = random.sample(word_len_words, sample)
 		else:
 			self.word_list = word_len_words
-		self.reset()
 		f.close()
 		if aux_fpath:
 			f = open(aux_fpath,"r")
@@ -270,10 +298,12 @@ class Game:
 			f.close()
 		else:
 			self.aux_word_list = None
+		self.reset()
 		return
 
 	def reset(self):
 		random.shuffle(self.word_list)
+		random.shuffle(self.aux_word_list)
 		self.solution = random.choice(self.word_list)
 		self.score_history = []
 		self.won = False
