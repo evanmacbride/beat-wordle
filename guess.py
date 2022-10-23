@@ -334,11 +334,17 @@ class Game:
 		clr_scored_guess = clr_scored_guess
 		return clr_scored_guess
 
-	def get_display_header(self):
-		header_str = '''
-T  GUESS  SCORE           REMAINING                                                               SIZE
+	def get_display_header(self, verbose=True):
+		if verbose:
+			header_str = (
+'''T  GUESS  SCORE           REMAINING                                                               SIZE
 _  _____  ______________  _________                                                               ____
-		'''
+			''')
+		else:
+			header_str = (
+'''T  GUESS  SCORE
+_  _____  ______________
+			''')
 		return header_str
 
 def simulation(num_simuls=1, verbose=True, manual_soln=None, starter='slate'):
@@ -348,8 +354,9 @@ def simulation(num_simuls=1, verbose=True, manual_soln=None, starter='slate'):
 	turns_played = 0
 	# Initialize game
 	game = Game("data/popular.txt", aux_fpath="data/enable1.txt")
-	if verbose:
-		header_str = game.get_display_header()
+	header_str = game.get_display_header(verbose)
+	if not verbose:
+		print(header_str)
 	for i in range(num_simuls):
 		# Initialize guess engine
 		game_words = game.get_word_list()
@@ -404,7 +411,8 @@ def simulation(num_simuls=1, verbose=True, manual_soln=None, starter='slate'):
 				strict = True
 				cur_guess = guess.find_breaker(hard=True)
 				breaker_last_turn = True
-			elif game.current_turn >= Game.TURNS - 4 and len(guess.strict_word_list) > (Game.TURNS - game.current_turn + 1) and ( 
+			elif game.current_turn >= Game.TURNS - 4 and len(guess.strict_word_list) > (
+						Game.TURNS - game.current_turn + 1) and ( 
 					not breaker_last_turn):
 				if verbose:
 					print("***BREAKER MODE*** too many words remain")
@@ -426,6 +434,7 @@ def simulation(num_simuls=1, verbose=True, manual_soln=None, starter='slate'):
 			clr_scored_guess = game.get_clr_scored_guess(score, cur_guess)
 			if verbose:
 				display_word_str = ", ".join(guess.strict_word_list[0:game.NUM_DISP])
+				# Only print the first NUM_DISP words from the word list
 				if len(guess.strict_word_list) > game.NUM_DISP:
 					display_word_str += "... " + '{0:>4}'.format(str(len(guess.strict_word_list)))
 				else:
