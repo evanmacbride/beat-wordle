@@ -31,9 +31,6 @@ class Guess:
 		seen = all(self.soln_ltr_matches)
 		return seen
 
-	def seen_soln_anagram(self):
-		return len(list(self.soln_ltrs)) == Game.WORD_LEN
-
 	def add_manual_guess(self, word):
 		self.current = word
 		self.guess_history.append(self.current)
@@ -49,9 +46,6 @@ class Guess:
 		self.current = self.get_word_entr_list(strict)[0][0]
 		self.guess_history.append(self.current)
 		return self.current
-
-	def get_current_entropy(self):
-		return self.get_word_entr_list()[0][1]
 
 	def get_word_entr_list(self, strict=False):
 		# DEBUG
