@@ -233,8 +233,6 @@ class Guess:
 		self.trim_strict_word_list(score)
 
 	def trim_word_list(self, score):
-		if self.current in self.word_list:
-			self.word_list.remove(self.current)
 		for i, point in enumerate(score):
 			if point == 0:
 				self.word_list = [w for w in self.word_list if self.current[i] not in w]
@@ -245,8 +243,6 @@ class Guess:
 				self.word_list = [w for w in self.word_list if self.current[i] in w]
 
 	def trim_strict_word_list(self, score):
-		if self.current in self.strict_word_list:
-			self.strict_word_list.remove(self.current)
 		for i, point in enumerate(score):
 			if point == 0:
 				self.strict_word_list = [w for w in self.strict_word_list if self.current[i] not in w]
@@ -415,6 +411,7 @@ def simulation(num_simuls=1, verbose=True, manual_soln=None, starter='slate'):
 			if game.current_turn >= 2:
 				all_similar =  guess.lookahead_similarity()
 			if game.current_turn == 0 and starter:
+				# FIRST TURN, USING STARTER
 				cur_guess = guess.add_manual_guess(starter)
 				breaker_last_turn = False
 			elif guess.seen_complete_soln():
