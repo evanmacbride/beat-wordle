@@ -229,29 +229,42 @@ class Guess:
 				self.soln_ltr_matches[i] = self.current[i]
 
 	def trim_word_lists(self, score):
-		self.trim_word_list(score)
-		self.trim_strict_word_list(score)
+		self.word_list = self.trim_word_list(score, self.word_list)
+		self.strict_word_list = self.trim_word_list(score, self.strict_word_list)
 
-	def trim_word_list(self, score):
+	def trim_word_list(self, score, word_list):
+		# TODO add a strict mode. Pass in a strict boolean as an argument.
+		# Find the matches first
+		exact_matches = set()
+		#partial_matches = set()
+		# Keep track of how many partial matches there are for each letter so that
+		# we can accurately trim our word_list.
+		partial_matches = {}
 		for i, point in enumerate(score):
-			if point == 0:
-				self.word_list = [w for w in self.word_list if self.current[i] not in w]
+			if point == 2:
+				word_list = [w for w in word_list if self.current[i] == w[i]]
+				exact_matches.add(self.current[i])
 			elif point == 1:
-				self.word_list = [w for w in self.word_list if self.current[i] in w 
-													and self.current[i] != w[i]]
-			elif point == 2:
-				self.word_list = [w for w in self.word_list if self.current[i] in w]
-
-	def trim_strict_word_list(self, score):
+				word_list = [w for w in word_list if self.current[i] in w]
+				word_list = [w for w in word_list if self.current[i] != w[i]] # STRICT
+				#partial_matches.add(self.current[i])
+				qty_found = partial_matches.get(self.current[i])
+				if qty_found:
+					partial_matches[self.current[i]] = qty_found + 1
+				else:
+					partial_matches[self.current[i]] = 1
+		# Only remove words with zero-scoring letters if those letters weren't also
+		# part of partial or exact matches elsewhere in the word.
 		for i, point in enumerate(score):
-			if point == 0:
-				self.strict_word_list = [w for w in self.strict_word_list if self.current[i] not in w]
-			elif point == 1:
-				self.strict_word_list = [w for w in self.strict_word_list if self.current[i] in w 
-													and self.current[i] != w[i]]
-			elif point == 2:
-				self.strict_word_list = [w for w in self.strict_word_list if self.current[i] == w[i]]
-
+			qty_found = partial_matches.get(self.current[i])
+			if point == 0 and not (self.current[i] in exact_matches or qty_found):
+				word_list = [w for w in word_list if self.current[i] not in w]
+			elif point == 0 and self.current[i] in exact_matches:
+				word_list = [w for w in word_list if self.current[i] != w[i]]
+			#elif point == 0 and qty_found:
+			#	word_list = [w for w in word_list if word_list.count(self.current[i]) <= qty_found]
+		return word_list
+	
 	def lookahead_similarity(self):
 		all_similar = False
 		diff_ltrs = 0
@@ -320,14 +333,30 @@ class Game:
 		return self.solution 
 
 	def score_guess(self, guess):
-		score = []
-		for g,s in zip(guess,self.solution):
+		score = [0] * Game.WORD_LEN
+		#ltrs_matched = set()
+		#partial_soln = set()
+		partial_soln = []
+		for i,(g,s) in enumerate(zip(guess, self.solution)):
 			if g == s:
-				score.append(2)
-			elif g in self.solution:
-				score.append(1)
+				#ltrs_matched.add(g)
+				score[i] = 2
+				continue
 			else:
-				score.append(0)
+				for j,l in enumerate(self.solution):
+					if g == l and (j,l) not in partial_soln:
+						score[i] = 1
+						partial_soln.append((j,l))
+		# Partially matching letters in a guess only score one point for each
+		# corresponding letter in the solution that wasn't already exactly matched.
+		#for i,g in enumerate(guess):
+			#if g in self.solution and not (g in ltrs_matched or g in partial_soln):
+			#		score[i] = 1
+			#		partial_soln.add(g)
+			#for j,s in enumerate(self.solution):
+			#	if g == s and (j,s) not in partial_soln:
+			#		score[i] = 1
+			#		partial_soln.append((j,s))
 		self.score_history.append(score)
 		return score
 
