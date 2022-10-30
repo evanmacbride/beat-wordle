@@ -41,7 +41,6 @@ class Guess:
 		return self.current
 
 	def get_auto_guess(self, strict=False):
-		#self.current = self.get_word_entr_list(strict)[0][0]
 		self.current = self.get_most_likely_word()
 		self.guess_history.append(self.current)
 		return self.current
@@ -73,83 +72,6 @@ class Guess:
 		wordentr = sorted(wordentr, key=lambda x: x[1], reverse=True)
 		most_likely_word = wordentr[0][0]
 		return most_likely_word
-
-	def get_word_entr_list(self, strict=False):
-		# DEBUG
-		strict = True
-		# Get the probability of each letter at each position or within entire word
-		if strict:
-			using_word_list = self.strict_word_list
-		else:
-			using_word_list = self.word_list
-		wordgrid_df = pd.DataFrame([list(w) for w in self.strict_word_list])
-		gridct_df = pd.DataFrame()
-		# For each letter position, count the occurrences of letters at that 
-		# position. Store this information in gridct_df.
-		for c in wordgrid_df:
-			posnct = pd.DataFrame(dict(Counter(wordgrid_df.loc[:,c])),index=[c])
-			if strict and self.soln_ltr_matches[c]:
-				continue
-			gridct_df = pd.concat([gridct_df, posnct])
-		gridct_df = gridct_df.fillna(0)
-		if strict:
-			sumgrid_df = gridct_df.sum(numeric_only=True, axis=0)
-		else:
-			sumgrid_df = None
-		# Get the entropy for each letter at each position
-		ltrent_df = pd.DataFrame()
-		if not strict:
-			# Use positional information
-			for posn in wordgrid_df:
-				posn_entr = {}
-				for col in gridct_df:
-					prob = gridct_df.loc[posn,col] / len(wordgrid_df)
-					try:
-						entr = -prob * math.log(prob, 2)
-					except ValueError:
-						entr = 0.0
-					posn_entr[col] = entr
-				ltrent_df = pd.concat([ltrent_df,pd.DataFrame(posn_entr,index=[posn])],axis=0)
-		else:
-			# Do not use positional information. Consider each letter's probability
-			# at any position within a word.
-			ltr_entr = {}
-			for idx,ltrct in zip(sumgrid_df.index, sumgrid_df):
-				prob = ltrct / (len(using_word_list) * len(using_word_list[0]))
-				try:
-					entr = -prob * math.log(prob, 2)
-				except ValueError:
-					entr = 0.0
-				ltr_entr[idx] = entr
-			ltrent_df = pd.Series(ltr_entr).to_frame()
-		# Get the total entropy for each word in word_list
-		word_entrs = []
-		strict_ltrs = []
-		for w in using_word_list:
-			sum = 0.0
-			seen_this_word = set()
-			for i,l in enumerate(w):
-				if l == self.soln_ltr_matches[i]:
-					continue
-				# If l is not in strict_ltrs, sum += 0.0. We want to make sure we're
-				# using our guesses to obtain new information about the words in
-				# strict_word_list.
-				if not strict:
-					try:
-						addend = ltrent_df.loc[i,l]
-						if l in seen_this_word:
-							addend /= 2.0
-						sum += addend
-					# If we try to fetch from ltrent_df a letter that doesn't exist
-					# in ltrent_df, we'll throw a KeyError.
-					except KeyError:
-						sum += 0.0
-				else:
-					sum += ltrent_df.loc[l].item()
-				seen_this_word.add(l)
-			word_entrs.append((w,sum))
-		word_entrs = sorted(word_entrs, key=lambda x: x[1], reverse=True)		
-		return word_entrs
 
 	def find_breaker(self, hard=False):
 		ltrs = []
@@ -236,7 +158,6 @@ class Guess:
 		# TODO add a strict mode. Pass in a strict boolean as an argument.
 		# Find the matches first
 		exact_matches = set()
-		#partial_matches = set()
 		# Keep track of how many partial matches there are for each letter so that
 		# we can accurately trim our word_list.
 		partial_matches = {}
@@ -247,7 +168,6 @@ class Guess:
 			elif point == 1:
 				word_list = [w for w in word_list if self.current[i] in w]
 				word_list = [w for w in word_list if self.current[i] != w[i]] # STRICT
-				#partial_matches.add(self.current[i])
 				qty_found = partial_matches.get(self.current[i])
 				if qty_found:
 					partial_matches[self.current[i]] = qty_found + 1
@@ -261,8 +181,6 @@ class Guess:
 				word_list = [w for w in word_list if self.current[i] not in w]
 			elif point == 0 and self.current[i] in exact_matches:
 				word_list = [w for w in word_list if self.current[i] != w[i]]
-			#elif point == 0 and qty_found:
-			#	word_list = [w for w in word_list if word_list.count(self.current[i]) <= qty_found]
 		return word_list
 	
 	def lookahead_similarity(self):
@@ -408,7 +326,7 @@ def simulation(num_simuls=1, verbose=True, manual_soln=None, starter='slate'):
 	loss_solns = []
 	turns_played = 0
 	# Initialize game
-	game = Game("data/popular.txt", aux_fpath="data/enable1.txt")
+	game = Game("data/popular_plus.txt", aux_fpath="data/enable1.txt")
 	header_str = game.get_display_header(verbose)
 	if not verbose:
 		print(header_str)
