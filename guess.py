@@ -252,29 +252,17 @@ class Game:
 
 	def score_guess(self, guess):
 		score = [0] * Game.WORD_LEN
-		#ltrs_matched = set()
-		#partial_soln = set()
-		partial_soln = []
+		to_match_ct = {}
+		for s in self.solution:
+			to_match_ct[s] = self.solution.count(s)
 		for i,(g,s) in enumerate(zip(guess, self.solution)):
 			if g == s:
-				#ltrs_matched.add(g)
 				score[i] = 2
-				continue
+				to_match_ct[g] -= 1
 			else:
-				for j,l in enumerate(self.solution):
-					if g == l and (j,l) not in partial_soln:
-						score[i] = 1
-						partial_soln.append((j,l))
-		# Partially matching letters in a guess only score one point for each
-		# corresponding letter in the solution that wasn't already exactly matched.
-		#for i,g in enumerate(guess):
-			#if g in self.solution and not (g in ltrs_matched or g in partial_soln):
-			#		score[i] = 1
-			#		partial_soln.add(g)
-			#for j,s in enumerate(self.solution):
-			#	if g == s and (j,s) not in partial_soln:
-			#		score[i] = 1
-			#		partial_soln.append((j,s))
+				if g in self.solution and to_match_ct[g] > 0:
+					score[i] = 1
+					to_match_ct[g] -= 1
 		self.score_history.append(score)
 		return score
 
