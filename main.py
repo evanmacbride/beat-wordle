@@ -67,6 +67,7 @@ class Guess:
 					seen_this_word[ltr] = div + 1
 				else:
 					seen_this_word[ltr] = 2
+				# Repeat letters contribute less to entr_sum
 				entr_sum += ltrentr[ltr] / div
 			wordentr.append((word, entr_sum))
 		wordentr = sorted(wordentr, key=lambda x: x[1], reverse=True)
