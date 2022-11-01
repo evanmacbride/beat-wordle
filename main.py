@@ -29,8 +29,17 @@ class Guess:
 		seen = all(self.soln_ltr_matches)
 		return seen
 
-	def add_manual_guess(self, word):
-		self.current = word
+	def set_manual_guess(self, word, force=True):
+		lc_word = word.lower().strip()
+		if not force:
+			# check if valid input
+			if len(lc_word) != Game.WORD_LEN:
+				print("Guesses must be {} letters. Try again.".format(Game.WORD_LEN))
+				return None
+			if lc_word not in self.initial_word_list and lc_word not in self.aux_word_list:
+				print("{} not found in word list. Try again.".format(lc_word.upper()))
+				return None
+		self.current = lc_word
 		self.guess_history.append(self.current)
 		return self.current
 
@@ -183,6 +192,14 @@ class Guess:
 			elif point == 0 and self.current[i] in exact_matches:
 				word_list = [w for w in word_list if self.current[i] != w[i]]
 		return word_list
+
+	def get_current_word_list(self, strict=True):
+		word_list = None
+		if strict:
+			word_list = self.strict_word_list
+		else:
+			word_list = self.word_list
+		return word_list
 	
 	def lookahead_similarity(self):
 		all_similar = False
@@ -238,15 +255,34 @@ class Game:
 		self.current_turn = 0
 		return
 
-	def get_word_list(self,sample=None):
+	def get_game_words(self,sample=None):
 		if sample:
 			words = random.sample(self.word_list, sample)
 		else:
 			words = self.word_list
 		return words
 
-	def get_aux_word_list(self, sample=None):
+	def get_aux_words(self, sample=None):
 		return self.aux_word_list
+
+	def get_word_list_header(self):
+		header = '''REMAINING                                                                   SIZE
+_________                                                                   ____
+'''
+		return header
+
+	def get_word_list_display(self, word_list, display=10):
+		disp_str = ''
+		header = self.get_word_list_header()
+		disp_str += header
+		can_disp = min(display, len(word_list))
+		for i in range(can_disp-1):
+			disp_str += word_list[i] + ', '
+		disp_str += word_list[can_disp-1]
+		if len(word_list) > can_disp:
+			disp_str += "..."
+		disp_str += str(len(word_list))
+		return disp_str
 
 	def get_solution(self):
 		return self.solution 
@@ -266,6 +302,34 @@ class Game:
 					to_match_ct[g] -= 1
 		self.score_history.append(score)
 		return score
+
+	def set_manual_score(self, score_str):
+		# Remove non-numeric characters. Preserve whitespace.
+		score_str = re.sub(r'[^0-9 ]', '', score_str)
+		#score_chars = list(score_str.split())
+		if len(score_str) == Game.WORD_LEN:
+			score_chars = list(score_str)
+		else:
+			score_chars = score_str.split()
+		if len(score_chars) != Game.WORD_LEN:
+			print("Scores must have {} digits. Try again.".format(Game.WORD_LEN))
+			return None
+		score = []
+		for s in score_chars:
+			point = int(s)
+			if point not in [0, 1, 2]:
+				print("Points must be 0, 1, or 2. Try again.")
+				return None
+			else:
+				score.append(int(s))
+		self.score_history.append(score)
+		return score
+	
+	def check_win(self, score):
+		for s in score:
+			if s != 2:
+				return False
+		return True
 
 	def get_clr_scored_guess(self, score, guess):
 		'''
@@ -309,6 +373,25 @@ _  _____  ______________
 			''')
 		return header_str
 
+	def get_interactive_instructions(self):
+		'''
+		Return a string of instructions for interactive mode.
+		'''
+		instruct_str = '''INSTRUCTIONS: For each of your {} turns, enter a {} letter English word. When
+prompted, manually enter your score as single digits separated by a blank
+space. A letter that exactly matches the solution (GREEN) scores 2 points. An
+inexact match (YELLOW) scores 1 point. Letters that do not match the solution
+(GREY) score 0 points.
+
+SCORE ENTRY EXAMPLE: If you guessed HEART and the game shows the following:
+
+GREEN GREY YELLOW GREEN GREY
+
+You would enter:
+
+2 0 1 2 0'''.format(Game.TURNS, Game.WORD_LEN)
+		return instruct_str
+
 def simulation(num_simuls=1, verbose=True, manual_soln=None, starter='slate'):
 	# Run simulation to calculate win rate
 	games_won = 0
@@ -321,8 +404,8 @@ def simulation(num_simuls=1, verbose=True, manual_soln=None, starter='slate'):
 		print(header_str)
 	for i in range(num_simuls):
 		# Initialize guess engine
-		game_words = game.get_word_list()
-		aux_words = game.get_aux_word_list()
+		game_words = game.get_game_words()
+		aux_words = game.get_aux_words()
 		if not manual_soln:
 			true_soln = game.get_solution()
 		else:
@@ -348,7 +431,7 @@ def simulation(num_simuls=1, verbose=True, manual_soln=None, starter='slate'):
 				all_similar =  guess.lookahead_similarity()
 			if game.current_turn == 0 and starter:
 				# FIRST TURN, USING STARTER
-				cur_guess = guess.add_manual_guess(starter)
+				cur_guess = guess.set_manual_guess(starter)
 				breaker_last_turn = False
 			elif guess.seen_complete_soln():
 				if verbose:
@@ -434,7 +517,45 @@ def simulation(num_simuls=1, verbose=True, manual_soln=None, starter='slate'):
 			print(s)
 	return
 
+def interactive():
+	game = Game("data/popular_plus.txt", aux_fpath="data/enable1.txt")
+	game_words = game.get_game_words()
+	aux_words = game.get_aux_words()
+	guess = Guess(game_words, aux_words)
+	instruct_str = game.get_interactive_instructions()
+	# Game loop
+	while game.current_turn < Game.TURNS:
+		print("TURN:", game.current_turn + 1)
+		#print("WORDS REMAINING:",len(guess.strict_word_list))
+		word_list = guess.get_current_word_list()
+		disp_str = game.get_word_list_display(word_list)
+		print(disp_str)
+		print('"STRICT MODE" suggestion: ', guess.get_most_likely_word())
+		# TODO: fix bug in find_breaker() for use in interactive()
+		#print('"BREAKER MODE" suggestion:', guess.find_breaker())
+		print("Enter guess:")
+		word = None
+		while not word:
+			word_str = input()	
+			word = guess.set_manual_guess(word_str, force=False)
+		print("ENTERED:", word.upper())
+		print("Enter score for last guess:")
+		score = None
+		while not score:
+			score_str = input()
+			score = game.set_manual_score(score_str)
+		print("ENTERED:", score)
+		won = game.check_win(score)
+		guess.update(score)
+		if won:
+			print("YOU WIN")
+			break
+		game.current_turn += 1
+	return
+
 if __name__ == '__main__':
+	# Mode boolean, use to select interactive() or simulation()
+	interactive_mode = False
 	# Arguments and options for simulation()
 	verbose = True
 	num_simuls = 1
@@ -444,6 +565,8 @@ if __name__ == '__main__':
 	opts = [opt for opt in sys.argv if "--" in opt]
 	args = [arg for arg in sys.argv if "-" in arg and "--" not in arg]
 	# Parse options
+	if "--interactive" in opts:
+		interactive_mode = True	
 	if "--quiet" in opts:
 		verbose = False
 	elif "--verbose" in opts:
@@ -460,4 +583,7 @@ if __name__ == '__main__':
 				starter = None
 			else:
 				starter = arg.split("=")[1].lower()
-	sys.exit(simulation(verbose=verbose, num_simuls=num_simuls, manual_soln=manual_soln, starter=starter))
+	if interactive_mode:
+		sys.exit(interactive())
+	else:
+		sys.exit(simulation(verbose=verbose, num_simuls=num_simuls, manual_soln=manual_soln, starter=starter))
