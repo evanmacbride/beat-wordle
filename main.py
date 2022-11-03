@@ -134,6 +134,9 @@ class Guess:
 		redundant = True
 		i = 0
 		while redundant:
+			if i >= len(breaker_word_pts):
+				breaker = breaker_word_pts[0][0]
+				break
 			breaker = breaker_word_pts[i][0]
 			i += 1
 			if breaker in self.guess_history:
@@ -526,13 +529,11 @@ def interactive():
 	# Game loop
 	while game.current_turn < Game.TURNS:
 		print("TURN:", game.current_turn + 1)
-		#print("WORDS REMAINING:",len(guess.strict_word_list))
 		word_list = guess.get_current_word_list()
 		disp_str = game.get_word_list_display(word_list)
 		print(disp_str)
 		print('"STRICT MODE" suggestion: ', guess.get_most_likely_word())
-		# TODO: fix bug in find_breaker() for use in interactive()
-		#print('"BREAKER MODE" suggestion:', guess.find_breaker())
+		print('"BREAKER MODE" suggestion:', guess.find_breaker())
 		print("Enter guess:")
 		word = None
 		while not word:
